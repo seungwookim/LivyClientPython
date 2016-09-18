@@ -59,7 +59,7 @@ class LivyParqClientManager:
                 "driverCores": 1,
                 "driverMemory": "512m"}
         r = requests.post(self.host + "/sessions", data=json.dumps(data), headers=self.headers)
-        result = livy_client.get_response(str(r.json()['id']), None)
+        result = self.get_response(str(r.json()['id']), None)
         return result
 
     def check_alive_sessions(self):
@@ -138,7 +138,7 @@ class LivyParqClientManager:
         resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
                              "/statements", data=json.dumps(data), headers=self.headers)
         temp_resp = json.loads(resp.content, object_hook=JsonObject)
-        result = livy_client.get_response(str(min(self.avail_sess_list)), temp_resp.id)
+        result = self.get_response(str(min(self.avail_sess_list)), temp_resp.id)
         print("result : {0} ".format(result))
 
     def append_data(self, table_name, json_data):
@@ -162,7 +162,7 @@ class LivyParqClientManager:
         resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
                              "/statements", data=json.dumps(data), headers=self.headers)
         temp_resp = json.loads(resp.content, object_hook=JsonObject)
-        result = livy_client.get_response(str(min(self.avail_sess_list)), temp_resp.id)
+        result = self.get_response(str(min(self.avail_sess_list)), temp_resp.id)
         print("result : {0} ".format(result))
 
     def get_response(self, session_id, statements_id):
@@ -219,7 +219,7 @@ class LivyParqClientManager:
 
         resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
                              "/statements", data=json.dumps(data), headers=self.headers)
-        result = livy_client.get_response(str(min(self.avail_sess_list)), \
+        result = self.get_response(str(min(self.avail_sess_list)), \
                                           json.loads(resp.content, object_hook=JsonObject).id)
         result = json.loads(result["output"]["data"]["text/plain"].replace("'", ""), \
                             object_hook=JsonObject)
@@ -244,7 +244,7 @@ class LivyParqClientManager:
 
         resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
                              "/statements", data=json.dumps(data), headers=self.headers)
-        result = livy_client.get_response(str(min(self.avail_sess_list)), \
+        result = self.get_response(str(min(self.avail_sess_list)), \
                                           json.loads(resp.content, object_hook=JsonObject).id)
         result = json.loads(result["output"]["data"]["text/plain"].replace("'", ""), \
                             object_hook=JsonObject)
