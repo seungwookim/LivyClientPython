@@ -251,21 +251,21 @@ class LivyParqClientManager:
         return result
 
 
-# sample codes
-livy_client = LivyParqClientManager(2)
-livy_client.create_session()
-#livy_client.delete_all_sessions()
-livy_client.create_table("xxxx", "[{'name':'Andy', 'univ':'snu'},{'name':'Kim', 'univ':'snu'}," \
-                                 "{'name':'a', 'univ':'snu'},{'name':'b', 'univ':'snu'} ," \
-                                 "{'name':'c', 'univ':'snu'},{'name':'d', 'univ':'snu'}   ]")
-livy_client.append_data("xxxx", "[{'name':'ADDDDD', 'univ':'ADDDDD'}]")
-out = livy_client.query_data("xxxx", "select * from xxxx")
-forms = livy_client.query_stucture("xxxx")
-
-for j in range(0, len(forms.fields)):
-    print(forms.fields[j].name)
-
-for i in range(0, len(out)):
-    for j in range(0, len(forms.fields)):
-        print("=== {0}".format(out[i][forms.fields[j].name]))
+# # sample codes
+# livy_client = LivyParqClientManager(2)
+# livy_client.create_session()
+# #livy_client.delete_all_sessions()
+# livy_client.create_table("xxxx", "[{'name':'Andy', 'univ':'snu'},{'name':'Kim', 'univ':'snu'}," \
+#                                  "{'name':'a', 'univ':'snu'},{'name':'b', 'univ':'snu'} ," \
+#                                  "{'name':'c', 'univ':'snu'},{'name':'d', 'univ':'snu'}   ]")
+# livy_client.append_data("xxxx", "[{'name':'ADDDDD', 'univ':'ADDDDD'}]")
+# out = livy_client.query_data("xxxx", "select * from xxxx")
+# forms = livy_client.query_stucture("xxxx")
+#
+# for j in range(0, len(forms.fields)):
+#     print(forms.fields[j].name)
+#
+# for i in range(0, len(out)):
+#     for j in range(0, len(forms.fields)):
+#         print("=== {0}".format(out[i][forms.fields[j].name]))
 
