@@ -1,4 +1,4 @@
-import json, requests, textwrap, time, random, os
+import json, requests, textwrap, time, random, os, unicodedata
 
 
 class JsonObject:
@@ -250,10 +250,43 @@ class LivyParqClientManager:
                             object_hook=JsonObject)
         return result
 
+    def get_distinct_column(self, table_name, columns):
+        """
+        get distinct list of selected table's column
+        :return:
+        """
+        self.get_available_sess_id()
+        query_str = "select * from " + table_name
 
-# # sample codes
-# livy_client = LivyParqClientManager(2)
-# livy_client.create_session()
+        data = {
+            'code': ''.join(['from pyspark.sql import SQLContext\n',
+                             'import json, unicodedata\n',
+                             'sqlContext = SQLContext(sc)\n',
+                             'rows = sqlContext.read.load("' , str(self.hdfs_path),
+                             "/" ,table_name , '" , "parquet" )\n',
+                             'tbl = rows.registerTempTable("' , table_name , '")\n',
+                             'result = sqlContext.sql("' , str(query_str) ,
+                             '")\n',
+                             'columns = ' ,  str(columns) , '\n' ,
+                             'type(columns)\n'
+                             'return_data = {}\n'
+                             'for column in columns :\n'
+                             '  return_data[column.encode("UTF8")] = result.select(column).map(lambda x : x[0].encode("UTF8")).distinct().collect()\n',
+                             'str(return_data)'
+                             ])
+        }
+
+        resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
+                             "/statements", data=json.dumps(data), headers=self.headers)
+        result = self.get_response(str(min(self.avail_sess_list)), \
+                                          json.loads(resp.content, object_hook=JsonObject).id)
+        return json.loads(result["output"]["data"]["text/plain"])
+
+
+# sample codes
+#livy_client = LivyParqClientManager(2)
+#livy_client.create_session()
+#livy_client.get_distinct_column("TEST1", ["org","univ"])
 # #livy_client.delete_all_sessions()
 # livy_client.create_table("xxxx", "[{'name':'Andy', 'univ':'snu'},{'name':'Kim', 'univ':'snu'}," \
 #                                  "{'name':'a', 'univ':'snu'},{'name':'b', 'univ':'snu'} ," \
