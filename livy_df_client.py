@@ -1,4 +1,4 @@
-import json, requests, textwrap, time, random, os, unicodedata
+import json, requests, textwrap, time, random, os
 
 
 class JsonObject:
@@ -12,7 +12,7 @@ class JsonObject:
         return self.__dict__[item]
 
 
-class LivyParqClientManager:
+class LivyDfClientManager:
     def __init__(self, s_num):
         self.max_sess_num = s_num
         self.host = ""
@@ -32,8 +32,7 @@ class LivyParqClientManager:
         :return: None
         """
         try :
-            workdir = os.path.dirname(os.getcwd())
-            livy_conf = open(workdir + "/LivyClientPython/tfmsa_settings.json" , 'r')
+            livy_conf = open("/home/dev/TensorMSA/TensorMSA/tfmsa_settings.json" , 'r')
             json_data = json.loads(livy_conf.read(), object_hook=JsonObject)
             self.host = "http://" + json_data.livy.ip + ":" + json_data.livy.port
             self.hdfs_path = json_data.hdfs.path
@@ -130,16 +129,14 @@ class LivyParqClientManager:
                              'sqlContext = SQLContext(sc)\n',
                              'df_writer = sqlContext.createDataFrame(', str(json_data)  ,').write\n',
                              'df_writer.parquet("' , str(self.hdfs_path), "/", table_name ,
-                             '", mode="overwrite", partitionBy=None)'
+                             '", mode="append", partitionBy=None)'
                              ])
         }
-
-        print("request codes : {0} ".format(data))
         resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
                              "/statements", data=json.dumps(data), headers=self.headers)
         temp_resp = json.loads(resp.content, object_hook=JsonObject)
         result = self.get_response(str(min(self.avail_sess_list)), temp_resp.id)
-        print("result : {0} ".format(result))
+        return result
 
     def append_data(self, table_name, json_data):
         """
@@ -148,22 +145,24 @@ class LivyParqClientManager:
         :param json_data: json form schema data
         :return: success or failure
         """
+
         self.get_available_sess_id()
         data = {
             'code': ''.join(['from pyspark.sql import SQLContext, DataFrameWriter, DataFrame\n',
                              'sqlContext = SQLContext(sc)\n',
-                             'df_writer = sqlContext.createDataFrame(', str(json_data)  ,').write\n',
-                             'df_writer.parquet("' , str(self.hdfs_path), "/", table_name ,
-                             '", mode="append", partitionBy=None)'
+                             'df = sqlContext.read.load("', str(self.hdfs_path),
+                                                  "/", table_name, '" , "parquet" )\n'
+                             'df_writer = sqlContext.createDataFrame(', str(json_data)  ,')\n',
+                             'df.unionAll(df_writer)\n',
+                             'df.write.parquet("', str(self.hdfs_path), "/", table_name,
+                             '", mode="overwrite", partitionBy=None)\n'
                              ])
         }
-
-        print("request codes : {0} ".format(data))
         resp = requests.post(self.host + "/sessions/" + str(min(self.avail_sess_list)) + \
                              "/statements", data=json.dumps(data), headers=self.headers)
         temp_resp = json.loads(resp.content, object_hook=JsonObject)
         result = self.get_response(str(min(self.avail_sess_list)), temp_resp.id)
-        print("result : {0} ".format(result))
+
 
     def get_response(self, session_id, statements_id):
         """
@@ -221,15 +220,15 @@ class LivyParqClientManager:
                              "/statements", data=json.dumps(data), headers=self.headers)
         result = self.get_response(str(min(self.avail_sess_list)), \
                                           json.loads(resp.content, object_hook=JsonObject).id)
-        result = json.loads(result["output"]["data"]["text/plain"].replace("'", ""), \
-                            object_hook=JsonObject)
-        return result
+
+        return result["output"]["data"]["text/plain"].replace("'", "")
 
 
     def query_stucture(self, table_name):
         """
-        get table structure info
-        :return:
+        return parqueet data strucure stored on spark
+        :param table_name: table name you request
+        :return: JSON
         """
         self.get_available_sess_id()
 
@@ -246,9 +245,7 @@ class LivyParqClientManager:
                              "/statements", data=json.dumps(data), headers=self.headers)
         result = self.get_response(str(min(self.avail_sess_list)), \
                                           json.loads(resp.content, object_hook=JsonObject).id)
-        result = json.loads(result["output"]["data"]["text/plain"].replace("'", ""), \
-                            object_hook=JsonObject)
-        return result
+        return result["output"]["data"]["text/plain"].replace("'", "")
 
     def get_distinct_column(self, table_name, columns):
         """
@@ -280,25 +277,5 @@ class LivyParqClientManager:
                              "/statements", data=json.dumps(data), headers=self.headers)
         result = self.get_response(str(min(self.avail_sess_list)), \
                                           json.loads(resp.content, object_hook=JsonObject).id)
-        return json.loads(result["output"]["data"]["text/plain"])
 
-
-# sample codes
-#livy_client = LivyParqClientManager(2)
-#livy_client.create_session()
-#livy_client.get_distinct_column("TEST1", ["org","univ"])
-# #livy_client.delete_all_sessions()
-# livy_client.create_table("xxxx", "[{'name':'Andy', 'univ':'snu'},{'name':'Kim', 'univ':'snu'}," \
-#                                  "{'name':'a', 'univ':'snu'},{'name':'b', 'univ':'snu'} ," \
-#                                  "{'name':'c', 'univ':'snu'},{'name':'d', 'univ':'snu'}   ]")
-# livy_client.append_data("xxxx", "[{'name':'ADDDDD', 'univ':'ADDDDD'}]")
-# out = livy_client.query_data("xxxx", "select * from xxxx")
-# forms = livy_client.query_stucture("xxxx")
-#
-# for j in range(0, len(forms.fields)):
-#     print(forms.fields[j].name)
-#
-# for i in range(0, len(out)):
-#     for j in range(0, len(forms.fields)):
-#         print("=== {0}".format(out[i][forms.fields[j].name]))
-
+        return result["output"]["data"]["text/plain"].replace("\"", "")
